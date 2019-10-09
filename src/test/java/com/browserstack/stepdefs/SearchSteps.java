@@ -1,28 +1,23 @@
 package com.browserstack.stepdefs;
 
-import com.browserstack.local.Local;
-import com.browserstack.pageobjects.SearchPage;
 import cucumber.api.Scenario;
 import cucumber.api.java.After;
 import cucumber.api.java.Before;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 import cucumber.api.java.en.When;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class SearchSteps {
     private WebDriver driver;
-    private SearchPage searchPage;
-    private Local l;
 
     @Before
     public void setUp(Scenario scenario) throws Exception {
@@ -32,43 +27,36 @@ public class SearchSteps {
 
         DesiredCapabilities caps = new DesiredCapabilities();
         caps.setCapability("browser", System.getProperty("browser"));
-
-        if (System.getProperty("local") != null && System.getProperty("local").equals("true")) {
-            caps.setCapability("browserstack.local", "true");
-            l = new Local();
-            Map<String, String> options = new HashMap<String, String>();
-            options.put("key", ACCESS_KEY);
-            l.start(options);
-        }
+        caps.setCapability("browser_version", System.getProperty("browser_version"));
+        caps.setCapability("os", System.getProperty("os"));
+        caps.setCapability("os_version", System.getProperty("os_version"));
+        caps.setCapability("resolution", System.getProperty("resolution"));
+        caps.setCapability("build", "SE Cucumber Tests V1");
+        caps.setCapability("project", "SE Cucumber Tests");
 
         driver = new RemoteWebDriver(new URL(URL), caps);
-        searchPage = new SearchPage(driver);
     }
 
-    @Given("^I am on the website '(.+)'$")
-    public void I_am_on_the_website(String url) throws Throwable {
-        driver.get(url);
+    @Given("^Enter search term '(.*?)'$")
+    public void searchFor(String searchTerm) {
+        driver.navigate().to("http://en.wikipedia.org");
+        WebElement searchField = driver.findElement(By.id("searchInput"));
+        searchField.sendKeys(searchTerm);
     }
 
-    @When("^I submit the search term '(.+)'$")
-    public void I_submit_the_search_term(String searchTerm) throws Throwable {
-        searchPage.enterSearchTerm(searchTerm);
-        searchPage.submitSearch();
+    @When("^Do search$")
+    public void clickSearchButton() {
+        WebElement searchButton = driver.findElement(By.id("searchButton"));
+        searchButton.click();
     }
 
-    @Then("the page title should be '(.+)'$")
-    public void I_should_see_pagetitle(String expectedTitle) throws Throwable {
-        assertEquals(expectedTitle, driver.getTitle());
-    }
-
-    @Then("the page should contain '(.+)'$")
-    public void page_should_contain(String expectedTitle) throws Throwable {
-        assertTrue(driver.getPageSource().contains(expectedTitle));
+    @Then("^Single result is shown for '(.*?)'$")
+    public void assertSingleResult(String searchResult) {
+        assertEquals("Cucumber - Wikipedia", driver.getTitle());
     }
 
     @After
     public void teardown() throws Exception {
         driver.quit();
-        if (l != null) l.stop();
     }
 }
